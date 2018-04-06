@@ -64,8 +64,10 @@ int main()
 
     int16 adcresult =0;
     float volts = 0.0;
+    float blinking =0;
+    float scaling_factor = 0;
 
-    printf("\nBoot\n");
+    printf("\nBoot\n\n");
 
     //BatteryLed_Write(1); // Switch led on 
     BatteryLed_Write(0); // Switch led off 
@@ -82,10 +84,26 @@ int main()
             adcresult = ADC_Battery_GetResult16(); // get the ADC value (0 - 4095)
             // convert value to Volts
             // you need to implement the conversion
-            
+            volts = (float)adcresult / (float)4095 * (float)5 * scaling_factor;
             // Print both ADC results and converted value
-            printf("%d %f\r\n",adcresult, volts);
-        }
+            printf("%d %.4f\r\n", adcresult, volts);
+            
+            if (volts < 4.25 && blinking == 0)
+            {
+                BatteryLed_Write(1);
+                blinking = 1;
+            } else if  (volts < 4.25 && blinking)
+            {
+                
+                    BatteryLed_Write(0);
+                    blinking = 0;
+            }
+            else
+            { 
+                BatteryLed_Write (0);
+                }
+            
+            }
         CyDelay(500);
         
     }
