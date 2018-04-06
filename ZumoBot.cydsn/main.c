@@ -76,6 +76,8 @@ int main()
     // SW1_Read() returns zero when button is pressed
     // SW1_Read() returns one when button is not pressed
 
+    motor_start();
+    
     for(;;)
     {
         
@@ -104,10 +106,20 @@ int main()
                 }
             
             }
-        CyDelay(500);
-        
+    MotorDirLeft_Write(0); //left motor frwd 
+    PWM_WriteCompare1(100); // speed
+    MotorDirRight_Write(0); //right motor frwd
+    PWM_WriteCompare2(100); //speed
+    CyDelay(3000); // time for motor
+     
+    
+    
+    motor_stop();
+    
     }
- }   
+    motor_stop();
+ }  
+
 #endif
 
 #if 0
