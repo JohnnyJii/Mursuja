@@ -106,13 +106,46 @@ int main()
                 }
             
             }
-    MotorDirLeft_Write(0); //left motor frwd 
-    PWM_WriteCompare1(100); // speed
-    MotorDirRight_Write(0); //right motor frwd
-    PWM_WriteCompare2(100); //speed
+    MotorDirLeft_Write(0); //left motor frwd (1 = backwards)
+    PWM_WriteCompare1(120); // speed
+    MotorDirRight_Write(0); //right motor frwd (1 = backwards)
+    PWM_WriteCompare2(120); //speed
     CyDelay(3000); // time for motor
-     
-    
+    MotorDirLeft_Write(0);
+    MotorDirRight_Write(1);
+    PWM_WriteCompare2(120);
+    PWM_WriteCompare1(120);
+    CyDelay(440); //first 90 deg turn.
+    MotorDirLeft_Write(0);
+    PWM_WriteCompare1(120);
+    MotorDirRight_Write(0);
+    PWM_WriteCompare2(120);
+    CyDelay(2600);
+    MotorDirLeft_Write(0);
+    MotorDirRight_Write(1);
+    PWM_WriteCompare2(120);
+    PWM_WriteCompare1(120);
+    CyDelay(440);
+    MotorDirLeft_Write(0);
+    PWM_WriteCompare1(120);
+    MotorDirRight_Write(0);
+    PWM_WriteCompare2(120);
+    CyDelay(2600);
+    MotorDirLeft_Write(0);
+    MotorDirRight_Write(1);
+    PWM_WriteCompare2(80);
+    PWM_WriteCompare1(120);
+    CyDelay(600);
+    MotorDirLeft_Write(0);
+    PWM_WriteCompare1(120);
+    MotorDirRight_Write(0);
+    PWM_WriteCompare2(60);
+    CyDelay(3100);
+    MotorDirLeft_Write(0);
+    PWM_WriteCompare1(120);
+    MotorDirRight_Write(0);
+    PWM_WriteCompare2(120);
+    CyDelay(1000);
     
     motor_stop();
     
