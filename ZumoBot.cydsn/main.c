@@ -56,12 +56,16 @@ int rread(void);
 //battery level//
 int main()
 {
+    //struct sensors_ ref;
+    struct sensors_ dig;
+    
     CyGlobalIntEnable; 
     UART_1_Start();
     Systick_Start();
     
     ADC_Battery_Start();        
 
+    bool check = false;
     int16 adcresult =0;
     float volts = 0.0;
     float blinking =0;
@@ -75,11 +79,48 @@ int main()
     //button = SW1_Read(); // read SW1 on pSoC board
     // SW1_Read() returns zero when button is pressed
     // SW1_Read() returns one when button is not pressed
-
-    motor_start();
+    
+    reflectance_start();
+    reflectance_set_threshold(9000, 9000, 11000, 11000, 9000, 9000); // set center sensor threshold to 11000 and others to 9000
     
     for(;;)
     {
+        reflectance_digital(&dig);      //print out 0 or 1 according to results of reflectance period
+        if(check == false){
+            motor_start();
+            check = true;
+        }
+        if(dig.l3 == 1 && dig.l2 == 1 && dig.l1 == 1 && dig.r1 == 1 && dig.r2 == 1 && dig.r3 == 1){
+            motor_stop();
+        }
+        //if the two center sensors are on black and outer sensors are on white
+        if((dig.l3 == 0 && dig.l1 == 1 && dig.r1 == 1 && dig.r3 == 0) || 
+            (dig.l3 == 0 && dig.l2 == 1 && dig.l1 == 1 && dig.r1 == 1 && dig.r2 == 1 && dig.r3 == 0)){ 
+            PWM_WriteCompare2(100);     // right speed
+            PWM_WriteCompare1(100);     // left speed
+        }
+        //if three left sensors are on white
+        if(dig.l3 == 0 && dig.l2 == 0 && dig.l1 == 0){
+            PWM_WriteCompare2(100);     // right speed
+            PWM_WriteCompare1(30);      // left speed
+            CyDelay(100);
+            PWM_WriteCompare1(100);
+            PWM_WriteCompare2(100);
+        }
+        //if three right sensors are on white
+        if(dig.r1 == 0 && dig.r2 == 0 && dig.r3 == 0){
+            PWM_WriteCompare2(30);      // right speed
+            PWM_WriteCompare1(100);     // left speed
+            CyDelay(100);
+            PWM_WriteCompare1(100);
+            PWM_WriteCompare2(100);
+        }
+        
+        // read digital values that are based on threshold. 0 = white, 1 = black
+        // when blackness value is over threshold the sensors reads 1, otherwise 0
+        //printf("%5d %5d %5d %5d %5d %5d \r\n", dig.l3, dig.l2, dig.l1, dig.r1, dig.r2, dig.r3);
+        //print out 0 or 1 according to results of reflectance period
+        //CyDelay(200);
         
         ADC_Battery_StartConvert();
         if(ADC_Battery_IsEndConversion(ADC_Battery_WAIT_FOR_RESULT)) {   // wait for get ADC converted value
@@ -94,11 +135,11 @@ int main()
             {
                 BatteryLed_Write(1);
                 blinking = 1;
-            } else if  (volts < 4.25 && blinking)
+            } 
+            else if(volts < 4.25 && blinking)
             {
-                
-                    BatteryLed_Write(0);
-                    blinking = 0;
+                BatteryLed_Write(0);
+                blinking = 0;
             }
             else
             { 
@@ -106,16 +147,23 @@ int main()
                 }
             
             }
-    MotorDirLeft_Write(0); //left motor frwd (1 = backwards)
-    PWM_WriteCompare1(120); // speed
-    MotorDirRight_Write(0); //right motor frwd (1 = backwards)
-    PWM_WriteCompare2(120); //speed
-    CyDelay(3000); // time for motor
+        CyDelay(200);
+    }
+}
+        
+#endif
+
+#if 0
+    MotorDirLeft_Write(0);      //left motor frwd (1 = backwards)
+    PWM_WriteCompare1(120);     // speed
+    MotorDirRight_Write(0);     //right motor frwd (1 = backwards)
+    PWM_WriteCompare2(120);     //speed
+    CyDelay(3000);              // time for motor
     MotorDirLeft_Write(0);
     MotorDirRight_Write(1);
     PWM_WriteCompare2(120);
     PWM_WriteCompare1(120);
-    CyDelay(440); //first 90 deg turn.
+    CyDelay(440);               //first 90 deg turn.
     MotorDirLeft_Write(0);
     PWM_WriteCompare1(120);
     MotorDirRight_Write(0);
