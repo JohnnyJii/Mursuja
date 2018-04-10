@@ -60,6 +60,7 @@ int main()
     UART_1_Start();
     Systick_Start();
     
+    
     ADC_Battery_Start();        
 
     int16 adcresult =0;
@@ -106,11 +107,15 @@ int main()
                 }
             
             }
+<<<<<<< HEAD
     
     motor_stop();
     
     }
     motor_stop();
+=======
+
+>>>>>>> 477c3b7f890098cb06a3e3775a5fa411285308c0
  }  
 
 #endif
