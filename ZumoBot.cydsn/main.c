@@ -65,7 +65,6 @@ int main()
     
     ADC_Battery_Start();        
 
-    bool check = false;
     int16 adcresult =0;
     float volts = 0.0;
     float blinking =0;
@@ -82,39 +81,44 @@ int main()
     
     reflectance_start();
     reflectance_set_threshold(9000, 9000, 11000, 11000, 9000, 9000); // set center sensor threshold to 11000 and others to 9000
+    motor_start();
     
     for(;;)
     {
         reflectance_digital(&dig);      //print out 0 or 1 according to results of reflectance period
-        if(check == false){
-            motor_start();
-            check = true;
-        }
+        printf("%5d %5d %5d %5d %5d %5d \r\n", dig.l3, dig.l2, dig.l1, dig.r1, dig.r2, dig.r3);
+        
         if(dig.l3 == 1 && dig.l2 == 1 && dig.l1 == 1 && dig.r1 == 1 && dig.r2 == 1 && dig.r3 == 1){
             motor_stop();
         }
-        //if the two center sensors are on black and outer sensors are on white
-        if((dig.l3 == 0 && dig.l1 == 1 && dig.r1 == 1 && dig.r3 == 0) || 
-            (dig.l3 == 0 && dig.l2 == 1 && dig.l1 == 1 && dig.r1 == 1 && dig.r2 == 1 && dig.r3 == 0)){ 
-            PWM_WriteCompare2(100);     // right speed
-            PWM_WriteCompare1(100);     // left speed
-        }
-        //if three left sensors are on white
-        if(dig.l3 == 0 && dig.l2 == 0 && dig.l1 == 0){
-            PWM_WriteCompare2(100);     // right speed
-            PWM_WriteCompare1(30);      // left speed
-            CyDelay(100);
+        else if((dig.l3 == 0 && dig.l2 == 0 && dig.l1 == 1 && dig.r1 == 1 && dig.r2 == 0 && dig.r3 == 0)
+        || (dig.l3 == 0 && dig.l2 == 1 && dig.l1 == 1 && dig.r1 == 0 && dig.r2 == 0 && dig.r3 == 0)
+        || (dig.l3 == 0 && dig.l2 == 0 && dig.l1 == 0 && dig.r1 == 1 && dig.r2 == 1 && dig.r3 == 0)
+        || (dig.l3 == 0 && dig.l2 == 0 && dig.l1 == 0 && dig.r1 == 1 && dig.r2 == 0 && dig.r3 == 0)
+        || (dig.l3 == 0 && dig.l2 == 0 && dig.l1 == 1 && dig.r1 == 0 && dig.r2 == 0 && dig.r3 == 0))
+        {
+            printf("\n forward 100, 100\n");
+            motor_start();
             PWM_WriteCompare1(100);
             PWM_WriteCompare2(100);
-        }
-        //if three right sensors are on white
-        if(dig.r1 == 0 && dig.r2 == 0 && dig.r3 == 0){
-            PWM_WriteCompare2(30);      // right speed
-            PWM_WriteCompare1(100);     // left speed
-            CyDelay(100);
-            PWM_WriteCompare1(100);
+        } else if((dig.l3 == 1 && dig.l2 == 1 && dig.l1 == 0 && dig.r1 == 0 && dig.r2 == 0 && dig.r3 == 0)
+        || (dig.l3 == 1 && dig.l2 == 0 && dig.l1 == 0 && dig.r1 == 0 && dig.r2 == 0 && dig.r3 == 0))
+        {
+            PWM_WriteCompare1(0);
             PWM_WriteCompare2(100);
         }
+        else if((dig.l3 == 0 && dig.l2 == 0 && dig.l1 == 0 && dig.r1 == 0 && dig.r2 == 1 && dig.r3 == 1)
+        || (dig.l3 == 0 && dig.l2 == 0 && dig.l1 == 0 && dig.r1 == 0 && dig.r2 == 0 && dig.r3 == 1))
+        {
+            PWM_WriteCompare1(100);
+            PWM_WriteCompare2(0);
+        }
+        /*else {
+            printf("\nMotor stop\n");
+            motor_stop();
+        }*/
+        
+        
         
         // read digital values that are based on threshold. 0 = white, 1 = black
         // when blackness value is over threshold the sensors reads 1, otherwise 0
@@ -129,7 +133,7 @@ int main()
             // you need to implement the conversion
             volts = (float)adcresult / (float)4095 * (float)5 * scaling_factor;
             // Print both ADC results and converted value
-            printf("%d %.4f\r\n", adcresult, volts);
+            //printf("%d %.4f\r\n", adcresult, volts);
             
             if (volts < 4.25 && blinking == 0)
             {
@@ -147,7 +151,6 @@ int main()
                 }
             
             }
-        CyDelay(200);
     }
 }
         
@@ -155,9 +158,9 @@ int main()
 
 #if 0
     MotorDirLeft_Write(0);      //left motor frwd (1 = backwards)
-    PWM_WriteCompare1(120);     // speed
+    PWM_WriteCompare1(120);     //left speed
     MotorDirRight_Write(0);     //right motor frwd (1 = backwards)
-    PWM_WriteCompare2(120);     //speed
+    PWM_WriteCompare2(120);     //right speed
     CyDelay(3000);              // time for motor
     MotorDirLeft_Write(0);
     MotorDirRight_Write(1);
