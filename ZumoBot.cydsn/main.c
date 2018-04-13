@@ -46,6 +46,13 @@
 #include <sys/time.h>
 int rread(void);
 
+void turnLeftSoft();
+void turnLeftMed();
+void turnLeftHard();
+void turnRightSoft();
+void turnRightMed();
+void turnRightHard();
+
 /**
  * @file    main.c
  * @brief   
@@ -59,6 +66,7 @@ int main()
     //struct sensors_ ref;
     struct sensors_ dig;
     
+    bool stop = false;
     CyGlobalIntEnable; 
     UART_1_Start();
     Systick_Start();
@@ -80,7 +88,7 @@ int main()
     // SW1_Read() returns one when button is not pressed
     
     reflectance_start();
-    reflectance_set_threshold(9000, 9000, 11000, 11000, 9000, 9000); // set center sensor threshold to 11000 and others to 9000
+    reflectance_set_threshold(14000, 14000, 14000, 14000, 14000, 14000); // set center sensor threshold to 11000 and others to 9000
     motor_start();
     
     for(;;)
@@ -89,42 +97,92 @@ int main()
         printf("%5d %5d %5d %5d %5d %5d \r\n", dig.l3, dig.l2, dig.l1, dig.r1, dig.r2, dig.r3);
         
         if(dig.l3 == 1 && dig.l2 == 1 && dig.l1 == 1 && dig.r1 == 1 && dig.r2 == 1 && dig.r3 == 1){
-            motor_stop();
+            if(stop == true){
+                motor_stop();
+            }
+            stop = true;
         }
-        else if((dig.l3 == 0 && dig.l2 == 0 && dig.l1 == 1 && dig.r1 == 1 && dig.r2 == 0 && dig.r3 == 0)
-        || (dig.l3 == 0 && dig.l2 == 1 && dig.l1 == 1 && dig.r1 == 0 && dig.r2 == 0 && dig.r3 == 0)
-        || (dig.l3 == 0 && dig.l2 == 0 && dig.l1 == 0 && dig.r1 == 1 && dig.r2 == 1 && dig.r3 == 0)
-        || (dig.l3 == 0 && dig.l2 == 0 && dig.l1 == 0 && dig.r1 == 1 && dig.r2 == 0 && dig.r3 == 0)
-        || (dig.l3 == 0 && dig.l2 == 0 && dig.l1 == 1 && dig.r1 == 0 && dig.r2 == 0 && dig.r3 == 0))
+        else if(dig.l1 == 1 && dig.r1 == 1 && dig.l2 == 0&& dig.r2 == 0)
         {
-            printf("\n forward 100, 100\n");
             motor_start();
-            PWM_WriteCompare1(100);
-            PWM_WriteCompare2(100);
-        } else if((dig.l3 == 1 && dig.l2 == 1 && dig.l1 == 0 && dig.r1 == 0 && dig.r2 == 0 && dig.r3 == 0)
-        || (dig.l3 == 1 && dig.l2 == 0 && dig.l1 == 0 && dig.r1 == 0 && dig.r2 == 0 && dig.r3 == 0))
-        {
-            PWM_WriteCompare1(0);
-            PWM_WriteCompare2(100);
+            MotorDirLeft_Write(0);      //left motor frwd (1 = backwards)
+            MotorDirRight_Write(0);     //right motor frwd (1 = backwards)
+            PWM_WriteCompare1(255);
+            PWM_WriteCompare2(255);
+            printf("\nStraight\n");
         }
-        else if((dig.l3 == 0 && dig.l2 == 0 && dig.l1 == 0 && dig.r1 == 0 && dig.r2 == 1 && dig.r3 == 1)
-        || (dig.l3 == 0 && dig.l2 == 0 && dig.l1 == 0 && dig.r1 == 0 && dig.r2 == 0 && dig.r3 == 1))
+        else if((dig.r1 == 1 && dig.l1 == 0) || (dig.r1 == 1 && dig.r2 == 1))
         {
-            PWM_WriteCompare1(100);
-            PWM_WriteCompare2(0);
+            turnRightSoft();
         }
-        /*else {
-            printf("\nMotor stop\n");
-            motor_stop();
+        else if((dig.l1 == 1 && dig.r1 == 0) || (dig.l1 == 1 && dig.l2 == 1))
+        {
+            turnLeftSoft();
+        }
+        else if((dig.r2 == 1 && dig.r1 == 0) || (dig.r2 == 1 && dig.r3 == 1))
+        {
+            turnRightMed();
+        }
+        else if((dig.l2 == 1 && dig.l1 == 0) || (dig.l2 == 1 && dig.l3 == 1))
+        {
+            turnLeftMed();
+        }
+        else if(dig.r3 == 1 && dig.r2 == 0 && dig.r1 == 0)
+        {
+            turnRightHard();
+        }
+        else if(dig.l3 == 1 && dig.l2 == 0 && dig.l1 == 0)
+        {
+            turnLeftHard();
+        }
+        /*else if(dig.l3 == 0 && dig.l2 == 0 && dig.l1 == 1 && dig.r1 == 1 && dig.r2 == 0 && dig.r3 == 0)
+        {
+            //printf("\n forward \n");
+            motor_start();
+            MotorDirLeft_Write(0);      //left motor frwd (1 = backwards)
+            MotorDirRight_Write(0);     //right motor frwd (1 = backwards)
+            PWM_WriteCompare1(255);
+            PWM_WriteCompare2(255);
+        }
+        else if(dig.l3 == 1 && dig.l2 == 1 && dig.l1 == 0 && dig.r1 == 0 && dig.r2 == 0 && dig.r3 == 0)
+        {
+            //soft turn left
+            MotorDirLeft_Write(0);      //left motor frwd (1 = backwards)
+            MotorDirRight_Write(0);     //right motor frwd (1 = backwards)
+            PWM_WriteCompare1(150);
+            PWM_WriteCompare2(255);
+            //printf("\nsoft turn left\n");
+        }
+        else if(dig.l3 == 1 && dig.l2 == 0 && dig.l1 == 0 && dig.r1 == 0 && dig.r2 == 0 && dig.r3 == 0)
+        {
+            // hard turn left
+            MotorDirLeft_Write(1);      //left motor frwd (1 = backwards)
+            MotorDirRight_Write(0);     //right motor frwd (1 = backwards)
+            PWM_WriteCompare1(200);
+            PWM_WriteCompare2(255);
+        }
+        else if(dig.l3 == 0 && dig.l2 == 0 && dig.l1 == 0 && dig.r1 == 0 && dig.r2 == 1 && dig.r3 == 1)
+        {
+            //soft turn right
+            MotorDirLeft_Write(0);      //left motor frwd (1 = backwards)
+            MotorDirRight_Write(0);     //right motor frwd (1 = backwards)
+            PWM_WriteCompare1(255);
+            PWM_WriteCompare2(150);
+            //printf("\nsoft turn right\n");
+        }
+        else if(dig.l3 == 0 && dig.l2 == 0 && dig.l1 == 0 && dig.r1 == 0 && dig.r2 == 0 && dig.r3 == 1)
+        {
+            //hard turn right
+            MotorDirLeft_Write(0);      //left motor frwd (1 = backwards)
+            MotorDirRight_Write(1);     //right motor frwd (1 = backwards)
+            PWM_WriteCompare1(255);
+            PWM_WriteCompare2(200);
         }*/
-        
-        
         
         // read digital values that are based on threshold. 0 = white, 1 = black
         // when blackness value is over threshold the sensors reads 1, otherwise 0
         //printf("%5d %5d %5d %5d %5d %5d \r\n", dig.l3, dig.l2, dig.l1, dig.r1, dig.r2, dig.r3);
         //print out 0 or 1 according to results of reflectance period
-        //CyDelay(200);
         
         ADC_Battery_StartConvert();
         if(ADC_Battery_IsEndConversion(ADC_Battery_WAIT_FOR_RESULT)) {   // wait for get ADC converted value
@@ -152,6 +210,55 @@ int main()
             
             }
     }
+}
+void turnLeftSoft()
+{
+    printf("\nturnLeftSoft\n");
+    MotorDirLeft_Write(0);
+    MotorDirRight_Write(0);
+    PWM_WriteCompare1(200);
+    PWM_WriteCompare2(255);
+}
+void turnLeftMed()
+{
+    printf("\nturnLeftMed\n");
+    MotorDirLeft_Write(0);
+    MotorDirRight_Write(0);
+    PWM_WriteCompare1(100);
+    PWM_WriteCompare2(255);
+}
+void turnLeftHard()
+{
+    printf("\nturnLeftHard\n");
+    MotorDirLeft_Write(1);
+    MotorDirRight_Write(0);
+    PWM_WriteCompare1(255);
+    PWM_WriteCompare2(200);
+}
+
+void turnRightSoft()
+{
+    printf("\nturnRightSoft\n");
+    MotorDirLeft_Write(0);
+    MotorDirRight_Write(0);
+    PWM_WriteCompare2(200);
+    PWM_WriteCompare1(255);
+}
+void turnRightMed()
+{
+    printf("\nturnRightMed\n");
+    MotorDirLeft_Write(0);
+    MotorDirRight_Write(0);
+    PWM_WriteCompare2(100);
+    PWM_WriteCompare1(255);
+}
+void turnRightHard()
+{
+    printf("\nturnRightHard\n");
+    MotorDirLeft_Write(0);
+    MotorDirRight_Write(1);
+    PWM_WriteCompare2(200);
+    PWM_WriteCompare1(255);
 }
         
 #endif
