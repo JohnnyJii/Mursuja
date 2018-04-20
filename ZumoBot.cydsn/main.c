@@ -66,13 +66,15 @@ int main()
     //struct sensors_ ref;
     struct sensors_ dig;
     
-    
     CyGlobalIntEnable; 
     UART_1_Start();
     Systick_Start();
+    IR_Start();
+    IR_flush();
     
     ADC_Battery_Start();        
 
+    bool ir = true;
     int stop = 0;
     int direction = 0;  // 1 for left, 2 for right.
     int16 adcresult =0;
@@ -91,61 +93,98 @@ int main()
     
     reflectance_start();
     reflectance_set_threshold(9000, 9000, 11000, 11000, 9000, 9000); // set center sensor threshold to 11000 and others to 9000
+    printf("\n testi \n");
+    while(ir == true)
+    {
+        printf("\n testi1 \n");
+        motor_start();
+        MotorDirLeft_Write(0);      //left motor frwd (1 = backwards)
+        MotorDirRight_Write(0);     //right motor frwd (1 = backwards)
+        PWM_WriteCompare1(50);
+        PWM_WriteCompare2(50);
+        reflectance_digital(&dig);
+        if(dig.l3 == 1 && dig.l2 == 1 && dig.l1 == 1 && dig.r1 == 1 && dig.r2 == 1 && dig.r3 == 1)
+        {
+            motor_stop();
+            ir = false;
+            break;
+            printf("\n testi2 \n");
+        }
+    }
+    printf("Waiting for IR command.\n");
+    IR_wait();
+    printf("IR command received\n");
     
     for(;;)
     {
         reflectance_digital(&dig);      //print out 0 or 1 according to results of reflectance period
         //printf("%5d %5d %5d %5d %5d %5d \r\n", dig.l3, dig.l2, dig.l1, dig.r1, dig.r2, dig.r3);
+        CyDelay(1);
         
-        if(dig.l3 == 1 && dig.l2 == 1 && dig.l1 == 1 && dig.r1 == 1 && dig.r2 == 1 && dig.r3 == 1)
+        if(dig.l1 == 1 && dig.r1 == 1/* && dig.l2 == 0&& dig.r2 == 0*/)
         {
-            PWM_WriteCompare1(0);
-            PWM_WriteCompare2(0);
-            motor_stop();
-            stop = stop + 1;
-            CyDelay(50);
-            printf("\n%d\n", stop);
-            if(stop > 4)
+            if(stop == 0 || stop == 1)
             {
-                stop = 4;
+                CyDelay(200);
+                stop++;
+                printf("perseenreika\n");
+                //Beep(250,20);
+                if(stop >= 2)
+                {
+                    stop = 2;
+                    printf("if stop 2\n");
+                }
+                printf("%d\n", stop);
             }
-        }
-        else if(dig.l1 == 1 && dig.r1 == 1 && dig.l2 == 0&& dig.r2 == 0 && stop <= 3)
-        {
+            reflectance_digital(&dig); 
+            if(dig.l3 == 1 /*&& dig.l2 == 1 && dig.l1 == 1 && dig.r1 == 1 && dig.r2 == 1 */&& dig.r3 == 1 && stop == 2)
+                {
+                    printf("motor stop\n");
+                    motor_stop();
+                    IR_wait();
+                    //stop = true;
+                    //CyDelay(200);
+                }
             motor_start();
             MotorDirLeft_Write(0);      //left motor frwd (1 = backwards)
             MotorDirRight_Write(0);     //right motor frwd (1 = backwards)
             PWM_WriteCompare1(255);
             PWM_WriteCompare2(255);
-            //printf("\n straight\n");
+            printf("\n straight\n");
         }
         else if((dig.r1 == 1 && dig.l1 == 0) || (dig.r1 == 1 && dig.r2 == 1))
         {
+            motor_start();
             turnRightSoft();
             direction = 2;
         }
         else if((dig.l1 == 1 && dig.r1 == 0) || (dig.l1 == 1 && dig.l2 == 1))
         {
+            motor_start();
             turnLeftSoft();
             direction = 1;
         }
         else if((dig.r2 == 1 && dig.r1 == 0) || (dig.r2 == 1 && dig.r3 == 1))
         {
+            motor_start();
             turnRightMed();
             direction = 2;
         }
         else if((dig.l2 == 1 && dig.l1 == 0) || (dig.l2 == 1 && dig.l3 == 1))
         {
+            motor_start();
             turnLeftMed();
             direction = 1;
         }
         else if(dig.r3 == 1 && dig.r2 == 0 && dig.r1 == 0)
         {
+            motor_start();
             turnRightHard();
             direction = 2;
         }
         else if(dig.l3 == 1 && dig.l2 == 0 && dig.l1 == 0)
         {
+            motor_start();
             turnLeftHard();
             direction = 1;
         }
@@ -171,7 +210,8 @@ int main()
         //print out 0 or 1 according to results of reflectance period
         
         ADC_Battery_StartConvert();
-        if(ADC_Battery_IsEndConversion(ADC_Battery_WAIT_FOR_RESULT)) {   // wait for get ADC converted value
+        if(ADC_Battery_IsEndConversion(ADC_Battery_WAIT_FOR_RESULT)) 
+        {   // wait for get ADC converted value
             adcresult = ADC_Battery_GetResult16(); // get the ADC value (0 - 4095)
             // convert value to Volts
             // you need to implement the conversion
@@ -192,9 +232,9 @@ int main()
             else
             { 
                 BatteryLed_Write (0);
-                }
-            
             }
+            
+        }
     }
 }
 void turnLeftSoft()
