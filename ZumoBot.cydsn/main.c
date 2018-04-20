@@ -73,7 +73,7 @@ int main()
     
     ADC_Battery_Start();        
 
-    bool stop = false;
+    int stop = 0;
     int direction = 0;  // 1 for left, 2 for right.
     int16 adcresult =0;
     float volts = 0.0;
@@ -102,15 +102,22 @@ int main()
             PWM_WriteCompare1(0);
             PWM_WriteCompare2(0);
             motor_stop();
-            stop = true;
+            stop = stop + 1;
+            CyDelay(50);
+            printf("\n%d\n", stop);
+            if(stop > 4)
+            {
+                stop = 4;
+            }
         }
-        else if(dig.l1 == 1 && dig.r1 == 1 && dig.l2 == 0&& dig.r2 == 0 && stop == false)
+        else if(dig.l1 == 1 && dig.r1 == 1 && dig.l2 == 0&& dig.r2 == 0 && stop <= 3)
         {
             motor_start();
             MotorDirLeft_Write(0);      //left motor frwd (1 = backwards)
             MotorDirRight_Write(0);     //right motor frwd (1 = backwards)
             PWM_WriteCompare1(255);
             PWM_WriteCompare2(255);
+            //printf("\n straight\n");
         }
         else if((dig.r1 == 1 && dig.l1 == 0) || (dig.r1 == 1 && dig.r2 == 1))
         {
