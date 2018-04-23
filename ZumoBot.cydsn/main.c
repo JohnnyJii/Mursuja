@@ -123,21 +123,23 @@ int main()
         
         if(dig.l1 == 1 && dig.r1 == 1/* && dig.l2 == 0&& dig.r2 == 0*/)
         {
-            if(stop == 0 || stop == 1)
+            if((stop == 0 || stop == 1 || stop == 2) 
+            && (dig.l3 == 1 && dig.l2 == 1 && dig.l1 == 1 && dig.r1 == 1 && dig.r2 == 1 && dig.r3 == 1))
             {
-                CyDelay(200);
+                CyDelay(120);
                 stop++;
                 printf("perseenreika\n");
                 //Beep(250,20);
-                if(stop >= 2)
+                
+                if(stop >= 3)
                 {
-                    stop = 2;
+                    stop = 3;
                     printf("if stop 2\n");
                 }
                 printf("%d\n", stop);
             }
             reflectance_digital(&dig); 
-            if(dig.l3 == 1 /*&& dig.l2 == 1 && dig.l1 == 1 && dig.r1 == 1 && dig.r2 == 1 */&& dig.r3 == 1 && stop == 2)
+            if(dig.l3 == 1 && dig.l2 == 1 && dig.l1 == 1 && dig.r1 == 1 && dig.r2 == 1 && dig.r3 == 1 && stop == 3)
                 {
                     printf("motor stop\n");
                     motor_stop();
