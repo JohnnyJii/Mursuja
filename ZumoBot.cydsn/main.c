@@ -31,6 +31,7 @@
 
 #include <project.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "Systick.h"
 #include "Motor.h"
 #include "Ultra.h"
@@ -52,6 +53,7 @@ void turnLeftHard();
 void turnRightSoft();
 void turnRightMed();
 void turnRightHard();
+void uTurn();
 
 /**
  * @file    main.c
@@ -59,8 +61,10 @@ void turnRightHard();
  * @details  ** Enable global interrupt since Zumo library uses interrupts. **<br>&nbsp;&nbsp;&nbsp;CyGlobalIntEnable;<br>
 */
 
-#if 1
-//battery level//
+#if 0
+
+    //viivanseuranta logiikka.
+    
 int main()
 {
     //struct sensors_ ref;
@@ -128,13 +132,10 @@ int main()
             {
                 CyDelay(120);
                 stop++;
-                printf("perseenreika\n");
-                //Beep(250,20);
                 
                 if(stop >= 3)
                 {
                     stop = 3;
-                    printf("if stop 2\n");
                 }
                 printf("%d\n", stop);
             }
@@ -144,8 +145,6 @@ int main()
                     printf("motor stop\n");
                     motor_stop();
                     IR_wait();
-                    //stop = true;
-                    //CyDelay(200);
                 }
             motor_start();
             MotorDirLeft_Write(0);      //left motor frwd (1 = backwards)
@@ -239,6 +238,151 @@ int main()
         }
     }
 }
+#endif
+
+#if 1
+    
+    //sumo paini koodi.
+    
+int main()
+{
+    struct sensors_ dig;
+    
+    CyGlobalIntEnable; 
+    UART_1_Start();
+    Systick_Start();
+    IR_Start();
+    IR_flush();
+    Ultra_Start();                          // Ultra Sonic Start function
+    
+    bool line = true;
+    bool ir = true;
+    int16 adcresult =0;
+    float volts = 0.0;
+    float blinking =0;
+    float scaling_factor = 0;
+    int UltraValues[20];
+    float UltraAverage;
+   
+    printf("Boot\n");
+    
+    ADC_Battery_Start();
+    
+    reflectance_start();
+    reflectance_set_threshold(9000, 9000, 11000, 11000, 9000, 9000);
+    
+    
+    motor_start();
+        
+    while(ir == true)
+    {
+        reflectance_digital(&dig);
+        MotorDirLeft_Write(0);      //left motor frwd (1 = backwards)
+        MotorDirRight_Write(0);     //right motor frwd (1 = backwards)
+        PWM_WriteCompare1(50);
+        PWM_WriteCompare2(50);
+        printf("%5d %5d %5d %5d %5d %5d \r\n", dig.l3, dig.l2, dig.l1, dig.r1, dig.r2, dig.r3);
+        if(dig.l3 == 1 && dig.l2 == 1 && dig.l1 == 1 && dig.r1 == 1 && dig.r2 == 1 && dig.r3 == 1)
+        {
+            motor_stop();
+            ir = false;
+            break;
+        }
+    }
+    printf("Waiting for IR command.\n");
+    IR_wait();
+    printf("IR command received\n");
+    motor_start();
+    
+    for(;;) 
+    {
+        MotorDirLeft_Write(0);      //left motor frwd (1 = backwards)
+        MotorDirRight_Write(0);     //right motor frwd (1 = backwards)
+        PWM_WriteCompare1(255);
+        PWM_WriteCompare2(255);
+        
+        UltraAverage = 0;
+        
+        reflectance_digital(&dig);
+        
+        for(int i = 0; i <=19; i++)
+        {
+            UltraValues[i] = Ultra_GetDistance();
+            printf("distance = %d\r\n", Ultra_GetDistance()); 
+        }
+        for(int i = 0; i <=19; i++)
+        {
+            UltraAverage += UltraValues[i];
+        }
+        UltraAverage = UltraAverage / 20;
+        printf("Average: %.2f\r\n", UltraAverage);
+        
+        if(dig.l3 != 0 || dig.l2 != 0 || dig.l1 != 0 || dig.r1 != 0 || dig.r2 != 0 || dig.r3 != 0)
+        {
+            if(line == true)
+            {
+                CyDelay(150);
+                line = false;
+                printf("line\n");
+            }
+            else
+            {
+                MotorDirLeft_Write(1);
+                MotorDirRight_Write(1);
+                PWM_WriteCompare1(255);
+                PWM_WriteCompare2(255); 
+                CyDelay(50);
+                MotorDirLeft_Write(0);
+                MotorDirRight_Write(0);
+                
+                //int random = rand() % 2;
+                uTurn(1);
+                
+                CyDelay(350);
+                
+                MotorDirLeft_Write(0);
+                MotorDirRight_Write(0);
+            }
+        }
+        else
+        {
+            printf("suoraan\n");
+            PWM_WriteCompare1(255);
+            PWM_WriteCompare2(255);
+        }
+        
+        
+        
+        ADC_Battery_StartConvert();
+        if(ADC_Battery_IsEndConversion(ADC_Battery_WAIT_FOR_RESULT)) 
+        {   // wait for get ADC converted value
+            adcresult = ADC_Battery_GetResult16(); // get the ADC value (0 - 4095)
+            // convert value to Volts
+            // you need to implement the conversion
+            volts = (float)adcresult / (float)4095 * (float)5 * scaling_factor;
+            // Print both ADC results and converted value
+            //printf("%d %.4f\r\n", adcresult, volts);
+            
+            if (volts < 4.25 && blinking == 0)
+            {
+                BatteryLed_Write(1);
+                blinking = 1;
+            } 
+            else if(volts < 4.25 && blinking)
+            {
+                BatteryLed_Write(0);
+                blinking = 0;
+            }
+            else
+            { 
+                BatteryLed_Write (0);
+            }
+        }
+    }  
+}
+    
+#endif
+
 void turnLeftSoft()
 {
     printf("\nturnLeftSoft\n");
@@ -288,8 +432,23 @@ void turnRightHard()
     PWM_WriteCompare2(0);
     PWM_WriteCompare1(255);
 }
-        
-#endif
+void uTurn(int direction)
+{
+    if(direction == 0)
+    {
+        MotorDirLeft_Write(0);
+        MotorDirRight_Write(1);
+        PWM_WriteCompare2(255);
+        PWM_WriteCompare1(255);
+    }
+    else if(direction == 1)
+    {
+        MotorDirLeft_Write(1);
+        MotorDirRight_Write(0);
+        PWM_WriteCompare2(255);
+        PWM_WriteCompare1(255); 
+    }
+}
 
 #if 0
     MotorDirLeft_Write(0);      //left motor frwd (1 = backwards)
@@ -386,11 +545,26 @@ int main()
     UART_1_Start();
     Systick_Start();
     Ultra_Start();                          // Ultra Sonic Start function
+    
+    int UltraValues[20];
+    float UltraAverage;
+    
     while(1) {
-        int d = Ultra_GetDistance();
+        //int d = Ultra_GetDistance();
         //If you want to print out the value  
-        printf("distance = %d\r\n", d);
-        CyDelay(200);
+        for(int i = 0; i <=19; i++)
+        {
+            UltraValues[i] = Ultra_GetDistance();
+            printf("distance = %d\r\n", Ultra_GetDistance());
+            //CyDelay(200); 
+        }
+        for(int i = 0; i <=19; i++)
+        {
+            UltraAverage += UltraValues[i];
+        }
+        UltraAverage = UltraAverage / 20;
+        printf("Average: %.2f\r\n", UltraAverage);
+        UltraAverage = 0;
     }
 }   
 #endif
