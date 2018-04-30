@@ -53,7 +53,8 @@ void turnLeftHard();
 void turnRightSoft();
 void turnRightMed();
 void turnRightHard();
-void uTurn();
+void uTurn(int direction, uint8 speed);
+float getUltraAverage();
 
 /**
  * @file    main.c
@@ -61,6 +62,7 @@ void uTurn();
  * @details  ** Enable global interrupt since Zumo library uses interrupts. **<br>&nbsp;&nbsp;&nbsp;CyGlobalIntEnable;<br>
 */
 
+//viivanseuranta
 #if 0
 
     //viivanseuranta logiikka.
@@ -124,6 +126,8 @@ int main()
         reflectance_digital(&dig);      //print out 0 or 1 according to results of reflectance period
         //printf("%5d %5d %5d %5d %5d %5d \r\n", dig.l3, dig.l2, dig.l1, dig.r1, dig.r2, dig.r3);
         CyDelay(1);
+        PWM_WriteCompare1(250);
+        PWM_WriteCompare2(250);
         
         if(dig.l1 == 1 && dig.r1 == 1/* && dig.l2 == 0&& dig.r2 == 0*/)
         {
@@ -149,43 +153,37 @@ int main()
             motor_start();
             MotorDirLeft_Write(0);      //left motor frwd (1 = backwards)
             MotorDirRight_Write(0);     //right motor frwd (1 = backwards)
-            PWM_WriteCompare1(255);
-            PWM_WriteCompare2(255);
+            PWM_WriteCompare1(250);
+            PWM_WriteCompare2(250);
             printf("\n straight\n");
         }
         else if((dig.r1 == 1 && dig.l1 == 0) || (dig.r1 == 1 && dig.r2 == 1))
         {
-            motor_start();
             turnRightSoft();
             direction = 2;
         }
         else if((dig.l1 == 1 && dig.r1 == 0) || (dig.l1 == 1 && dig.l2 == 1))
         {
-            motor_start();
             turnLeftSoft();
             direction = 1;
         }
         else if((dig.r2 == 1 && dig.r1 == 0) || (dig.r2 == 1 && dig.r3 == 1))
         {
-            motor_start();
             turnRightMed();
             direction = 2;
         }
         else if((dig.l2 == 1 && dig.l1 == 0) || (dig.l2 == 1 && dig.l3 == 1))
         {
-            motor_start();
             turnLeftMed();
             direction = 1;
         }
         else if(dig.r3 == 1 && dig.r2 == 0 && dig.r1 == 0)
         {
-            motor_start();
             turnRightHard();
             direction = 2;
         }
         else if(dig.l3 == 1 && dig.l2 == 0 && dig.l1 == 0)
         {
-            motor_start();
             turnLeftHard();
             direction = 1;
         }
@@ -240,6 +238,7 @@ int main()
 }
 #endif
 
+//sumopaini
 #if 1
     
     //sumo paini koodi.
@@ -257,12 +256,15 @@ int main()
     
     bool line = true;
     bool ir = true;
-    int16 adcresult =0;
-    float volts = 0.0;
-    float blinking =0;
-    float scaling_factor = 0;
-    int UltraValues[20];
+    //int16 adcresult =0;
+    //float volts = 0.0;
+    //float blinking =0;
+    //float scaling_factor = 0;
     float UltraAverage;
+    int breaker;
+    int loop;
+    int move;
+    int dir = 0;
    
     printf("Boot\n");
     
@@ -271,16 +273,18 @@ int main()
     reflectance_start();
     reflectance_set_threshold(9000, 9000, 11000, 11000, 9000, 9000);
     
-    
     motor_start();
         
+    /*
+    motor_forward(100,2000);     // moving forward
+    motor_turn(200,50,2000);     // turn
+    motor_turn(50,200,2000);     // turn
+    motor_backward(100,2000);    // movinb backward
+    */
     while(ir == true)
     {
         reflectance_digital(&dig);
-        MotorDirLeft_Write(0);      //left motor frwd (1 = backwards)
-        MotorDirRight_Write(0);     //right motor frwd (1 = backwards)
-        PWM_WriteCompare1(50);
-        PWM_WriteCompare2(50);
+        motor_forward(50, 10);
         printf("%5d %5d %5d %5d %5d %5d \r\n", dig.l3, dig.l2, dig.l1, dig.r1, dig.r2, dig.r3);
         if(dig.l3 == 1 && dig.l2 == 1 && dig.l1 == 1 && dig.r1 == 1 && dig.r2 == 1 && dig.r3 == 1)
         {
@@ -293,67 +297,99 @@ int main()
     IR_wait();
     printf("IR command received\n");
     motor_start();
+    motor_forward(125,400);
     
     for(;;) 
     {
-        MotorDirLeft_Write(0);      //left motor frwd (1 = backwards)
-        MotorDirRight_Write(0);     //right motor frwd (1 = backwards)
-        PWM_WriteCompare1(255);
-        PWM_WriteCompare2(255);
-        
-        UltraAverage = 0;
+        move = rand() % 3 + 1;
+        switch(move)
+        {
+            case 1:
+                motor_forward(125, 50);
+                dir = 3;
+                break;
+            case 2:
+                turnLeftMed();
+                CyDelay(50);
+                dir = 1;
+                break;
+            case 3:
+                turnRightMed();
+                CyDelay(50);
+                dir = 2;
+                break;
+        }
         
         reflectance_digital(&dig);
         
-        for(int i = 0; i <=19; i++)
-        {
-            UltraValues[i] = Ultra_GetDistance();
-            printf("distance = %d\r\n", Ultra_GetDistance()); 
-        }
-        for(int i = 0; i <=19; i++)
-        {
-            UltraAverage += UltraValues[i];
-        }
-        UltraAverage = UltraAverage / 20;
-        printf("Average: %.2f\r\n", UltraAverage);
-        
         if(dig.l3 != 0 || dig.l2 != 0 || dig.l1 != 0 || dig.r1 != 0 || dig.r2 != 0 || dig.r3 != 0)
         {
-            if(line == true)
+            /*if(line == true)
             {
                 CyDelay(150);
                 line = false;
-                printf("line\n");
+                printf("line crossed\n");
             }
             else
-            {
-                MotorDirLeft_Write(1);
-                MotorDirRight_Write(1);
-                PWM_WriteCompare1(255);
-                PWM_WriteCompare2(255); 
-                CyDelay(50);
-                MotorDirLeft_Write(0);
-                MotorDirRight_Write(0);
+            {*/
+                motor_backward(250, 150);
                 
-                //int random = rand() % 2;
-                uTurn(1);
+                int random = rand() % 2;
+                uTurn(random, 125);
+                CyDelay(700);
                 
-                CyDelay(350);
-                
-                MotorDirLeft_Write(0);
-                MotorDirRight_Write(0);
-            }
+                motor_forward(125, 1);
+            //}
         }
         else
         {
-            printf("suoraan\n");
-            PWM_WriteCompare1(255);
-            PWM_WriteCompare2(255);
+            UltraAverage = getUltraAverage();
+            loop = 1;
+            //timer = 0;
+            if(UltraAverage <= 30 )//&& loop == 1 && timer < 2000)
+            {
+                breaker = 1;
+                while(loop == 1)
+                {
+                    UltraAverage = getUltraAverage();
+                    
+                    motor_forward(250, 1);
+                    if(UltraAverage > 30)
+                    {
+                        switch(dir)
+                        {
+                            case 1:
+                                //uTurn(0, 200);
+                                turnLeftHard();
+                                CyDelay(15);
+                                breaker++;
+                                break;
+                            case 2:
+                                //uTurn(1, 200);
+                                turnRightHard();
+                                CyDelay(15);
+                                breaker++;
+                                break;
+                            case 3:
+                                loop = 0;
+                                break;
+                        }
+                        if(breaker > 50)
+                        {
+                            loop = 0;
+                        }
+                    }
+                reflectance_digital(&dig);
+                if(dig.l3 != 0 || dig.l2 != 0 || dig.l1 != 0 || dig.r1 != 0 || dig.r2 != 0 || dig.r3 != 0)
+                {
+                    printf("loop -> 0\n");
+                    loop = 0;
+                }
+                }
+            }
         }
         
-        
-        
-        ADC_Battery_StartConvert();
+        /*ADC_Battery_StartConvert();
         if(ADC_Battery_IsEndConversion(ADC_Battery_WAIT_FOR_RESULT)) 
         {   // wait for get ADC converted value
             adcresult = ADC_Battery_GetResult16(); // get the ADC value (0 - 4095)
@@ -377,7 +413,7 @@ int main()
             { 
                 BatteryLed_Write (0);
             }
-        }
+        }*/
     }  
 }
     
@@ -388,8 +424,8 @@ void turnLeftSoft()
     printf("\nturnLeftSoft\n");
     MotorDirLeft_Write(0);
     MotorDirRight_Write(0);
-    PWM_WriteCompare1(150);
-    PWM_WriteCompare2(255);
+    PWM_WriteCompare1(150); //left
+    PWM_WriteCompare2(250); //right
 }
 void turnLeftMed()
 {
@@ -397,15 +433,15 @@ void turnLeftMed()
     MotorDirLeft_Write(0);
     MotorDirRight_Write(0);
     PWM_WriteCompare1(25);
-    PWM_WriteCompare2(255);
+    PWM_WriteCompare2(250);
 }
 void turnLeftHard()
 {
     printf("\nturnLeftHard\n");
     MotorDirLeft_Write(1);
     MotorDirRight_Write(0);
-    PWM_WriteCompare1(255);
-    PWM_WriteCompare2(50);
+    PWM_WriteCompare1(0);
+    PWM_WriteCompare2(250);
 }
 
 void turnRightSoft()
@@ -414,7 +450,7 @@ void turnRightSoft()
     MotorDirLeft_Write(0);
     MotorDirRight_Write(0);
     PWM_WriteCompare2(150);
-    PWM_WriteCompare1(255);
+    PWM_WriteCompare1(250);
 }
 void turnRightMed()
 {
@@ -422,7 +458,7 @@ void turnRightMed()
     MotorDirLeft_Write(0);
     MotorDirRight_Write(0);
     PWM_WriteCompare2(25);
-    PWM_WriteCompare1(255);
+    PWM_WriteCompare1(250);
 }
 void turnRightHard()
 {
@@ -430,24 +466,42 @@ void turnRightHard()
     MotorDirLeft_Write(0);
     MotorDirRight_Write(1);
     PWM_WriteCompare2(0);
-    PWM_WriteCompare1(255);
+    PWM_WriteCompare1(250);
 }
-void uTurn(int direction)
+void uTurn(int direction, uint8 speed)
 {
+    printf("uTurn\n");
     if(direction == 0)
     {
         MotorDirLeft_Write(0);
         MotorDirRight_Write(1);
-        PWM_WriteCompare2(255);
-        PWM_WriteCompare1(255);
+        PWM_WriteCompare2(speed);
+        PWM_WriteCompare1(speed);
     }
     else if(direction == 1)
     {
         MotorDirLeft_Write(1);
         MotorDirRight_Write(0);
-        PWM_WriteCompare2(255);
-        PWM_WriteCompare1(255); 
+        PWM_WriteCompare2(speed);
+        PWM_WriteCompare1(speed); 
     }
+}
+float getUltraAverage()
+{
+    int UltraValues[20];
+    float UltraAverage = 0;
+    for(int i = 0; i <=19; i++)
+            {
+                UltraValues[i] = Ultra_GetDistance();
+                printf("distance = %d\r\n", Ultra_GetDistance()); 
+            }
+            for(int i = 0; i <=19; i++)
+            {
+                UltraAverage += UltraValues[i];
+            }
+            UltraAverage = UltraAverage / 20;
+            printf("Average: %.2f\r\n", UltraAverage);
+            return UltraAverage;
 }
 
 #if 0
@@ -546,25 +600,12 @@ int main()
     Systick_Start();
     Ultra_Start();                          // Ultra Sonic Start function
     
-    int UltraValues[20];
     float UltraAverage;
     
     while(1) {
-        //int d = Ultra_GetDistance();
-        //If you want to print out the value  
-        for(int i = 0; i <=19; i++)
-        {
-            UltraValues[i] = Ultra_GetDistance();
-            printf("distance = %d\r\n", Ultra_GetDistance());
-            //CyDelay(200); 
-        }
-        for(int i = 0; i <=19; i++)
-        {
-            UltraAverage += UltraValues[i];
-        }
-        UltraAverage = UltraAverage / 20;
-        printf("Average: %.2f\r\n", UltraAverage);
-        UltraAverage = 0;
+        UltraAverage = getUltraAverage();
+        printf("%f\n", UltraAverage);
+        CyDelay(500);
     }
 }   
 #endif
@@ -607,7 +648,7 @@ int main()
 //reflectance//
 int main()
 {
-    struct sensors_ ref;
+    //struct sensors_ ref;
     struct sensors_ dig;
 
     Systick_Start();
@@ -618,12 +659,17 @@ int main()
     reflectance_start();
     reflectance_set_threshold(9000, 9000, 11000, 11000, 9000, 9000); // set center sensor threshold to 11000 and others to 9000
     
+        motor_start();
+        MotorDirLeft_Write(1);
+        MotorDirRight_Write(1);
+        PWM_WriteCompare1(255);
+        PWM_WriteCompare2(255);
 
     for(;;)
     {
         // read raw sensor values
-        reflectance_read(&ref);
-        printf("%5d %5d %5d %5d %5d %5d\r\n", ref.l3, ref.l2, ref.l1, ref.r1, ref.r2, ref.r3);       // print out each period of reflectance sensors
+        //reflectance_read(&ref);
+        //printf("%5d %5d %5d %5d %5d %5d\r\n", ref.l3, ref.l2, ref.l1, ref.r1, ref.r2, ref.r3);       // print out each period of reflectance sensors
         
         // read digital values that are based on threshold. 0 = white, 1 = black
         // when blackness value is over threshold the sensors reads 1, otherwise 0
@@ -631,6 +677,7 @@ int main()
         printf("%5d %5d %5d %5d %5d %5d \r\n", dig.l3, dig.l2, dig.l1, dig.r1, dig.r2, dig.r3);        //print out 0 or 1 according to results of reflectance period
         
         CyDelay(200);
+        
     }
 }   
 #endif
