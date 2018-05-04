@@ -63,13 +63,12 @@ float getUltraAverage();
 */
 
 //viivanseuranta
-#if 0
+#if 1
 
     //viivanseuranta logiikka.
     
 int main()
 {
-    //struct sensors_ ref;
     struct sensors_ dig;
     
     CyGlobalIntEnable; 
@@ -89,20 +88,12 @@ int main()
     float scaling_factor = 0;
 
     printf("\nBoot\n\n");
-
-    //BatteryLed_Write(1); // Switch led on 
-    BatteryLed_Write(0); // Switch led off 
-    //uint8 button;
-    //button = SW1_Read(); // read SW1 on pSoC board
-    // SW1_Read() returns zero when button is pressed
-    // SW1_Read() returns one when button is not pressed
     
+    //sensorien lukemisne aloitus, sekä valkosen/mustan rajoarvojen asettaminen.
     reflectance_start();
     reflectance_set_threshold(9000, 9000, 11000, 11000, 9000, 9000); // set center sensor threshold to 11000 and others to 9000
-    printf("\n testi \n");
     while(ir == true)
     {
-        printf("\n testi1 \n");
         motor_start();
         MotorDirLeft_Write(0);      //left motor frwd (1 = backwards)
         MotorDirRight_Write(0);     //right motor frwd (1 = backwards)
@@ -114,23 +105,23 @@ int main()
             motor_stop();
             ir = false;
             break;
-            printf("\n testi2 \n");
         }
     }
     printf("Waiting for IR command.\n");
     IR_wait();
     printf("IR command received\n");
     
+    //varsinainen ohjauslogiikka
     for(;;)
     {
         reflectance_digital(&dig);      //print out 0 or 1 according to results of reflectance period
-        //printf("%5d %5d %5d %5d %5d %5d \r\n", dig.l3, dig.l2, dig.l1, dig.r1, dig.r2, dig.r3);
         CyDelay(1);
         PWM_WriteCompare1(250);
         PWM_WriteCompare2(250);
         
-        if(dig.l1 == 1 && dig.r1 == 1/* && dig.l2 == 0&& dig.r2 == 0*/)
+        if(dig.l1 == 1 && dig.r1 == 1)
         {
+            //viivan ylityksen seuranta.
             if((stop == 0 || stop == 1 || stop == 2) 
             && (dig.l3 == 1 && dig.l2 == 1 && dig.l1 == 1 && dig.r1 == 1 && dig.r2 == 1 && dig.r3 == 1))
             {
@@ -141,12 +132,11 @@ int main()
                 {
                     stop = 3;
                 }
-                printf("%d\n", stop);
             }
             reflectance_digital(&dig); 
+            //pysähtyminen kolmannella viivalla.
             if(dig.l3 == 1 && dig.l2 == 1 && dig.l1 == 1 && dig.r1 == 1 && dig.r2 == 1 && dig.r3 == 1 && stop == 3)
                 {
-                    printf("motor stop\n");
                     motor_stop();
                     IR_wait();
                 }
@@ -155,7 +145,6 @@ int main()
             MotorDirRight_Write(0);     //right motor frwd (1 = backwards)
             PWM_WriteCompare1(250);
             PWM_WriteCompare2(250);
-            printf("\n straight\n");
         }
         else if((dig.r1 == 1 && dig.l1 == 0) || (dig.r1 == 1 && dig.r2 == 1))
         {
@@ -203,11 +192,6 @@ int main()
             }
         }
         
-        // read digital values that are based on threshold. 0 = white, 1 = black
-        // when blackness value is over threshold the sensors reads 1, otherwise 0
-        //printf("%5d %5d %5d %5d %5d %5d \r\n", dig.l3, dig.l2, dig.l1, dig.r1, dig.r2, dig.r3);
-        //print out 0 or 1 according to results of reflectance period
-        
         ADC_Battery_StartConvert();
         if(ADC_Battery_IsEndConversion(ADC_Battery_WAIT_FOR_RESULT)) 
         {   // wait for get ADC converted value
@@ -239,7 +223,7 @@ int main()
 #endif
 
 //sumopaini
-#if 1
+#if 0
     
     //sumo paini koodi.
     
@@ -254,12 +238,7 @@ int main()
     IR_flush();
     Ultra_Start();                          // Ultra Sonic Start function
     
-    bool line = true;
     bool ir = true;
-    //int16 adcresult =0;
-    //float volts = 0.0;
-    //float blinking =0;
-    //float scaling_factor = 0;
     float UltraAverage;
     int breaker;
     int loop;
@@ -268,24 +247,17 @@ int main()
    
     printf("Boot\n");
     
-    ADC_Battery_Start();
-    
+    //sama sensoreiden alustus kuin viivanseurannassa. Myös samat raja-arvot.
     reflectance_start();
     reflectance_set_threshold(9000, 9000, 11000, 11000, 9000, 9000);
     
     motor_start();
-        
-    /*
-    motor_forward(100,2000);     // moving forward
-    motor_turn(200,50,2000);     // turn
-    motor_turn(50,200,2000);     // turn
-    motor_backward(100,2000);    // movinb backward
-    */
+    
+    //aloituslogiikka
     while(ir == true)
     {
         reflectance_digital(&dig);
         motor_forward(50, 10);
-        printf("%5d %5d %5d %5d %5d %5d \r\n", dig.l3, dig.l2, dig.l1, dig.r1, dig.r2, dig.r3);
         if(dig.l3 == 1 && dig.l2 == 1 && dig.l1 == 1 && dig.r1 == 1 && dig.r2 == 1 && dig.r3 == 1)
         {
             motor_stop();
@@ -293,19 +265,22 @@ int main()
             break;
         }
     }
+    //IR komennon vastaanotto/odottaminen.
     printf("Waiting for IR command.\n");
     IR_wait();
     printf("IR command received\n");
     motor_start();
-    motor_forward(125,400);
+    motor_forward(255,200);
     
+    //sumon ohjauslogiikka.
     for(;;) 
     {
+        //numeron arvonta miten robotti käyttäytyy "idle" ajossa.
         move = rand() % 3 + 1;
         switch(move)
         {
             case 1:
-                motor_forward(125, 50);
+                motor_forward(255, 30);
                 dir = 3;
                 break;
             case 2:
@@ -324,29 +299,22 @@ int main()
         
         if(dig.l3 != 0 || dig.l2 != 0 || dig.l1 != 0 || dig.r1 != 0 || dig.r2 != 0 || dig.r3 != 0)
         {
-            /*if(line == true)
-            {
-                CyDelay(150);
-                line = false;
-                printf("line crossed\n");
-            }
-            else
-            {*/
                 motor_backward(250, 150);
                 
+                //viivalle saapuessa robotti arpoo kumman suunnan kautta kääntyy ympäri
                 int random = rand() % 2;
                 uTurn(random, 125);
                 CyDelay(700);
                 
-                motor_forward(125, 1);
-            //}
+                motor_forward(255, 1);
         }
         else
         {
             UltraAverage = getUltraAverage();
             loop = 1;
-            //timer = 0;
-            if(UltraAverage <= 30 )//&& loop == 1 && timer < 2000)
+            
+            //ultraääni sensoreiden keskiarvon lukeminen.
+            if(UltraAverage <= 30 )
             {
                 breaker = 1;
                 while(loop == 1)
@@ -354,18 +322,19 @@ int main()
                     UltraAverage = getUltraAverage();
                     
                     motor_forward(250, 1);
+                    
+                    //jos ultran keskiarvo on enemmän kuin 30, yrittää koodi löytää kohteen uudestaan.
                     if(UltraAverage > 30)
                     {
+                        //dir = ohjaus logiikassa muutettu muuttuja, viittaa viimeksi käännyttyyn suuntaan.
                         switch(dir)
                         {
                             case 1:
-                                //uTurn(0, 200);
                                 turnLeftHard();
                                 CyDelay(15);
                                 breaker++;
                                 break;
                             case 2:
-                                //uTurn(1, 200);
                                 turnRightHard();
                                 CyDelay(15);
                                 breaker++;
@@ -374,46 +343,22 @@ int main()
                                 loop = 0;
                                 break;
                         }
+                        // "timer"
                         if(breaker > 50)
                         {
                             loop = 0;
                         }
                     }
-                reflectance_digital(&dig);
-                if(dig.l3 != 0 || dig.l2 != 0 || dig.l1 != 0 || dig.r1 != 0 || dig.r2 != 0 || dig.r3 != 0)
-                {
-                    printf("loop -> 0\n");
-                    loop = 0;
-                }
+                    //varalta sensoreiden arvojen lukua, ettei robotti mene kehän ulkopuolelle.
+                    reflectance_digital(&dig);
+                    if(dig.l3 != 0 || dig.l2 != 0 || dig.l1 != 0 || dig.r1 != 0 || dig.r2 != 0 || dig.r3 != 0)
+                    {
+                        //poistuu ultran while loopista kun loop arvoa muutetaan.
+                        loop = 0;
+                    }
                 }
             }
         }
-        
-        /*ADC_Battery_StartConvert();
-        if(ADC_Battery_IsEndConversion(ADC_Battery_WAIT_FOR_RESULT)) 
-        {   // wait for get ADC converted value
-            adcresult = ADC_Battery_GetResult16(); // get the ADC value (0 - 4095)
-            // convert value to Volts
-            // you need to implement the conversion
-            volts = (float)adcresult / (float)4095 * (float)5 * scaling_factor;
-            // Print both ADC results and converted value
-            //printf("%d %.4f\r\n", adcresult, volts);
-            
-            if (volts < 4.25 && blinking == 0)
-            {
-                BatteryLed_Write(1);
-                blinking = 1;
-            } 
-            else if(volts < 4.25 && blinking)
-            {
-                BatteryLed_Write(0);
-                blinking = 0;
-            }
-            else
-            { 
-                BatteryLed_Write (0);
-            }
-        }*/
     }  
 }
     
@@ -468,6 +413,7 @@ void turnRightHard()
     PWM_WriteCompare2(0);
     PWM_WriteCompare1(250);
 }
+//U-käännos funktio
 void uTurn(int direction, uint8 speed)
 {
     printf("uTurn\n");
@@ -486,6 +432,7 @@ void uTurn(int direction, uint8 speed)
         PWM_WriteCompare1(speed); 
     }
 }
+//Ultraääni sensorin arvojen muuttaminen keskiarvoksi
 float getUltraAverage()
 {
     int UltraValues[20];
