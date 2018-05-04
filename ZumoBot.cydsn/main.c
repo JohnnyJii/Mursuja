@@ -92,14 +92,13 @@ int main()
     //sensorien lukemisne aloitus, sekä valkosen/mustan rajoarvojen asettaminen.
     reflectance_start();
     reflectance_set_threshold(9000, 9000, 11000, 11000, 9000, 9000); // set center sensor threshold to 11000 and others to 9000
+    
+    motor_start();
+    
     while(ir == true)
     {
-        motor_start();
-        MotorDirLeft_Write(0);      //left motor frwd (1 = backwards)
-        MotorDirRight_Write(0);     //right motor frwd (1 = backwards)
-        PWM_WriteCompare1(50);
-        PWM_WriteCompare2(50);
         reflectance_digital(&dig);
+        motor_forward(50, 10);
         if(dig.l3 == 1 && dig.l2 == 1 && dig.l1 == 1 && dig.r1 == 1 && dig.r2 == 1 && dig.r3 == 1)
         {
             motor_stop();
