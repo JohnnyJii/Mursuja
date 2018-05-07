@@ -1,0 +1,6 @@
+C:\Program Files (x86)\Cypress\PSoC Creator\4.2\PSoC Creator\psoc\content\default\CyAnnotationLibrary\CyAnnotationLibrary.cylib\CyAnnotationLibrary.cyprj|e5be1d60-a27c-4a56-ab50-9473b329207b
+C:\Users\johnn\Documents\PSoC Creator\4.2\Downloads ( 4.2).cylib\Downloads ( 4.2).cyprj|81fa2026-5a72-4be5-a767-74210d50232c
+C:\Program Files (x86)\Cypress\PSoC Creator\4.2\PSoC Creator\psoc\content\cycomponentlibraryupdates\CyComponentLibraryUpdates.cylib\CyComponentLibraryUpdates.cyprj|c2350afb-dc39-4146-9d2c-2b8e71307a21
+C:\Program Files (x86)\Cypress\PSoC Creator\4.2\PSoC Creator\psoc\content\cycomponentlibrary\CyComponentLibrary.cylib\CyComponentLibrary.cyprj|ff20190c-8892-4051-b2c2-aa2eafe0659c
+C:\Program Files (x86)\Cypress\PSoC Creator\4.2\PSoC Creator\psoc\content\cyprimitives\CyPrimitives.cylib\CyPrimitives.cyprj|a6cd8901-304d-4ee0-810b-39bd3cc605fd
+C:\Users\johnn\OneDrive - Metropolia Ammattikorkeakoulu Oy\Laitteet\Mursu\Mursuja\ZumoBot.cydsn\ZumoBot.cyprj|73894b15-f05d-4ca6-a2c3-2487d6bb99a4

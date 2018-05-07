@@ -52,6 +52,8 @@ void turnLeftHard();
 void turnRightSoft();
 void turnRightMed();
 void turnRightHard();
+void uTurn(int direction, uint8 speed);
+float getUltraAverage();
 
 /**
  * @file    main.c
@@ -59,11 +61,13 @@ void turnRightHard();
  * @details  ** Enable global interrupt since Zumo library uses interrupts. **<br>&nbsp;&nbsp;&nbsp;CyGlobalIntEnable;<br>
 */
 
+//viivanseuranta
 #if 1
-//battery level//
+
+    //viivanseuranta logiikka.
+    
 int main()
 {
-    //struct sensors_ ref;
     struct sensors_ dig;
     
     CyGlobalIntEnable; 
@@ -83,110 +87,94 @@ int main()
     float scaling_factor = 0;
 
     printf("\nBoot\n\n");
-
-    //BatteryLed_Write(1); // Switch led on 
-    BatteryLed_Write(0); // Switch led off 
-    //uint8 button;
-    //button = SW1_Read(); // read SW1 on pSoC board
-    // SW1_Read() returns zero when button is pressed
-    // SW1_Read() returns one when button is not pressed
     
+<<<<<<< HEAD
     reflectance_start(); // starts to read sensors
+=======
+    //sensorien lukemisne aloitus, sekä valkosen/mustan rajoarvojen asettaminen.
+    reflectance_start();
+>>>>>>> d00f1dadfa41075b12690cd1118dc6ac2a186161
     reflectance_set_threshold(9000, 9000, 11000, 11000, 9000, 9000); // set center sensor threshold to 11000 and others to 9000
-    printf("\n testi \n");
+    
+    motor_start();
+    
     while(ir == true)
     {
-        printf("\n testi1 \n");
-        motor_start();
-        MotorDirLeft_Write(0);      //left motor frwd (1 = backwards)
-        MotorDirRight_Write(0);     //right motor frwd (1 = backwards)
-        PWM_WriteCompare1(50);
-        PWM_WriteCompare2(50);
         reflectance_digital(&dig);
+        motor_forward(50, 10);
         if(dig.l3 == 1 && dig.l2 == 1 && dig.l1 == 1 && dig.r1 == 1 && dig.r2 == 1 && dig.r3 == 1)
         {
             motor_stop();
             ir = false;
             break;
-            printf("\n testi2 \n");
         }
     }
     printf("Waiting for IR command.\n");
     IR_wait();
     printf("IR command received\n");
     
+    //varsinainen ohjauslogiikka
     for(;;)
     {
         reflectance_digital(&dig);      //print out 0 or 1 according to results of reflectance period
-        //printf("%5d %5d %5d %5d %5d %5d \r\n", dig.l3, dig.l2, dig.l1, dig.r1, dig.r2, dig.r3);
         CyDelay(1);
+        PWM_WriteCompare1(250);
+        PWM_WriteCompare2(250);
         
-        if(dig.l1 == 1 && dig.r1 == 1/* && dig.l2 == 0&& dig.r2 == 0*/)
+        if(dig.l1 == 1 && dig.r1 == 1)
         {
+            //viivan ylityksen seuranta.
             if((stop == 0 || stop == 1 || stop == 2) 
             && (dig.l3 == 1 && dig.l2 == 1 && dig.l1 == 1 && dig.r1 == 1 && dig.r2 == 1 && dig.r3 == 1))
             {
                 CyDelay(120);
                 stop++;
-                printf("perseenreika\n");
-                //Beep(250,20);
                 
                 if(stop >= 3)
                 {
                     stop = 3;
-                    printf("if stop 2\n");
                 }
-                printf("%d\n", stop);
             }
             reflectance_digital(&dig); 
+            //pysähtyminen kolmannella viivalla.
             if(dig.l3 == 1 && dig.l2 == 1 && dig.l1 == 1 && dig.r1 == 1 && dig.r2 == 1 && dig.r3 == 1 && stop == 3)
                 {
-                    printf("motor stop\n");
                     motor_stop();
                     IR_wait();
-                    //stop = true;
-                    //CyDelay(200);
                 }
             motor_start();
             MotorDirLeft_Write(0);      //left motor frwd (1 = backwards)
             MotorDirRight_Write(0);     //right motor frwd (1 = backwards)
-            PWM_WriteCompare1(255);
-            PWM_WriteCompare2(255);
-            printf("\n straight\n");
+            PWM_WriteCompare1(250);
+            PWM_WriteCompare2(250);
         }
         else if((dig.r1 == 1 && dig.l1 == 0) || (dig.r1 == 1 && dig.r2 == 1))
         {
-            motor_start();
             turnRightSoft();
             direction = 2;
         }
         else if((dig.l1 == 1 && dig.r1 == 0) || (dig.l1 == 1 && dig.l2 == 1))
         {
-            motor_start();
             turnLeftSoft();
             direction = 1;
         }
         else if((dig.r2 == 1 && dig.r1 == 0) || (dig.r2 == 1 && dig.r3 == 1))
         {
-            motor_start();
             turnRightMed();
             direction = 2;
         }
         else if((dig.l2 == 1 && dig.l1 == 0) || (dig.l2 == 1 && dig.l3 == 1))
         {
-            motor_start();
             turnLeftMed();
             direction = 1;
         }
         else if(dig.r3 == 1 && dig.r2 == 0 && dig.r1 == 0)
         {
-            motor_start();
             turnRightHard();
             direction = 2;
         }
         else if(dig.l3 == 1 && dig.l2 == 0 && dig.l1 == 0)
         {
-            motor_start();
             turnLeftHard();
             direction = 1;
         }
@@ -205,11 +193,6 @@ int main()
                 motor_stop();
             }
         }
-        
-        // read digital values that are based on threshold. 0 = white, 1 = black
-        // when blackness value is over threshold the sensors reads 1, otherwise 0
-        //printf("%5d %5d %5d %5d %5d %5d \r\n", dig.l3, dig.l2, dig.l1, dig.r1, dig.r2, dig.r3);
-        //print out 0 or 1 according to results of reflectance period
         
         ADC_Battery_StartConvert();
         if(ADC_Battery_IsEndConversion(ADC_Battery_WAIT_FOR_RESULT)) 
@@ -239,13 +222,157 @@ int main()
         }
     }
 }
+#endif
+
+//sumopaini
+#if 0
+    
+    //sumo paini koodi.
+    
+int main()
+{
+    struct sensors_ dig;
+    
+    CyGlobalIntEnable; 
+    UART_1_Start();
+    Systick_Start();
+    IR_Start();
+    IR_flush();
+    Ultra_Start();                          // Ultra Sonic Start function
+    
+    bool ir = true;
+    float UltraAverage;
+    int breaker;
+    int loop;
+    int move;
+    int dir = 0;
+   
+    printf("Boot\n");
+    
+    //sama sensoreiden alustus kuin viivanseurannassa. Myös samat raja-arvot.
+    reflectance_start();
+    reflectance_set_threshold(9000, 9000, 11000, 11000, 9000, 9000);
+    
+    motor_start();
+    
+    //aloituslogiikka
+    while(ir == true)
+    {
+        reflectance_digital(&dig);
+        motor_forward(50, 10);
+        if(dig.l3 == 1 && dig.l2 == 1 && dig.l1 == 1 && dig.r1 == 1 && dig.r2 == 1 && dig.r3 == 1)
+        {
+            motor_stop();
+            ir = false;
+            break;
+        }
+    }
+    //IR komennon vastaanotto/odottaminen.
+    printf("Waiting for IR command.\n");
+    IR_wait();
+    printf("IR command received\n");
+    motor_start();
+    motor_forward(255,200);
+    
+    //sumon ohjauslogiikka.
+    for(;;) 
+    {
+        //numeron arvonta miten robotti käyttäytyy "idle" ajossa.
+        move = rand() % 3 + 1;
+        switch(move)
+        {
+            case 1:
+                motor_forward(255, 30);
+                dir = 3;
+                break;
+            case 2:
+                turnLeftMed();
+                CyDelay(50);
+                dir = 1;
+                break;
+            case 3:
+                turnRightMed();
+                CyDelay(50);
+                dir = 2;
+                break;
+        }
+        
+        reflectance_digital(&dig);
+        
+        if(dig.l3 != 0 || dig.l2 != 0 || dig.l1 != 0 || dig.r1 != 0 || dig.r2 != 0 || dig.r3 != 0)
+        {
+                motor_backward(250, 150);
+                
+                //viivalle saapuessa robotti arpoo kumman suunnan kautta kääntyy ympäri
+                int random = rand() % 2;
+                uTurn(random, 125);
+                CyDelay(700);
+                
+                motor_forward(255, 1);
+        }
+        else
+        {
+            UltraAverage = getUltraAverage();
+            loop = 1;
+            
+            //ultraääni sensoreiden keskiarvon lukeminen.
+            if(UltraAverage <= 30 )
+            {
+                breaker = 1;
+                while(loop == 1)
+                {
+                    UltraAverage = getUltraAverage();
+                    
+                    motor_forward(250, 1);
+                    
+                    //jos ultran keskiarvo on enemmän kuin 30, yrittää koodi löytää kohteen uudestaan.
+                    if(UltraAverage > 30)
+                    {
+                        //dir = ohjaus logiikassa muutettu muuttuja, viittaa viimeksi käännyttyyn suuntaan.
+                        switch(dir)
+                        {
+                            case 1:
+                                turnLeftHard();
+                                CyDelay(15);
+                                breaker++;
+                                break;
+                            case 2:
+                                turnRightHard();
+                                CyDelay(15);
+                                breaker++;
+                                break;
+                            case 3:
+                                loop = 0;
+                                break;
+                        }
+                        // "timer"
+                        if(breaker > 50)
+                        {
+                            loop = 0;
+                        }
+                    }
+                    //varalta sensoreiden arvojen lukua, ettei robotti mene kehän ulkopuolelle.
+                    reflectance_digital(&dig);
+                    if(dig.l3 != 0 || dig.l2 != 0 || dig.l1 != 0 || dig.r1 != 0 || dig.r2 != 0 || dig.r3 != 0)
+                    {
+                        //poistuu ultran while loopista kun loop arvoa muutetaan.
+                        loop = 0;
+                    }
+                }
+            }
+        }
+    }  
+}
+    
+#endif
+
 void turnLeftSoft()
 {
     printf("\nturnLeftSoft\n");
     MotorDirLeft_Write(0);
     MotorDirRight_Write(0);
-    PWM_WriteCompare1(150);
-    PWM_WriteCompare2(255);
+    PWM_WriteCompare1(150); //left
+    PWM_WriteCompare2(250); //right
 }
 void turnLeftMed()
 {
@@ -253,15 +380,15 @@ void turnLeftMed()
     MotorDirLeft_Write(0);
     MotorDirRight_Write(0);
     PWM_WriteCompare1(25);
-    PWM_WriteCompare2(255);
+    PWM_WriteCompare2(250);
 }
 void turnLeftHard()
 {
     printf("\nturnLeftHard\n");
     MotorDirLeft_Write(1);
     MotorDirRight_Write(0);
-    PWM_WriteCompare1(255);
-    PWM_WriteCompare2(50);
+    PWM_WriteCompare1(0);
+    PWM_WriteCompare2(250);
 }
 
 void turnRightSoft()
@@ -270,7 +397,7 @@ void turnRightSoft()
     MotorDirLeft_Write(0);
     MotorDirRight_Write(0);
     PWM_WriteCompare2(150);
-    PWM_WriteCompare1(255);
+    PWM_WriteCompare1(250);
 }
 void turnRightMed()
 {
@@ -278,7 +405,7 @@ void turnRightMed()
     MotorDirLeft_Write(0);
     MotorDirRight_Write(0);
     PWM_WriteCompare2(25);
-    PWM_WriteCompare1(255);
+    PWM_WriteCompare1(250);
 }
 void turnRightHard()
 {
@@ -286,10 +413,45 @@ void turnRightHard()
     MotorDirLeft_Write(0);
     MotorDirRight_Write(1);
     PWM_WriteCompare2(0);
-    PWM_WriteCompare1(255);
+    PWM_WriteCompare1(250);
 }
-        
-#endif
+//U-käännos funktio
+void uTurn(int direction, uint8 speed)
+{
+    printf("uTurn\n");
+    if(direction == 0)
+    {
+        MotorDirLeft_Write(0);
+        MotorDirRight_Write(1);
+        PWM_WriteCompare2(speed);
+        PWM_WriteCompare1(speed);
+    }
+    else if(direction == 1)
+    {
+        MotorDirLeft_Write(1);
+        MotorDirRight_Write(0);
+        PWM_WriteCompare2(speed);
+        PWM_WriteCompare1(speed); 
+    }
+}
+//Ultraääni sensorin arvojen muuttaminen keskiarvoksi
+float getUltraAverage()
+{
+    int UltraValues[20];
+    float UltraAverage = 0;
+    for(int i = 0; i <=19; i++)
+            {
+                UltraValues[i] = Ultra_GetDistance();
+                printf("distance = %d\r\n", Ultra_GetDistance()); 
+            }
+            for(int i = 0; i <=19; i++)
+            {
+                UltraAverage += UltraValues[i];
+            }
+            UltraAverage = UltraAverage / 20;
+            printf("Average: %.2f\r\n", UltraAverage);
+            return UltraAverage;
+}
 
 #if 0
     MotorDirLeft_Write(0);      //left motor frwd (1 = backwards)
@@ -386,11 +548,13 @@ int main()
     UART_1_Start();
     Systick_Start();
     Ultra_Start();                          // Ultra Sonic Start function
+    
+    float UltraAverage;
+    
     while(1) {
-        int d = Ultra_GetDistance();
-        //If you want to print out the value  
-        printf("distance = %d\r\n", d);
-        CyDelay(200);
+        UltraAverage = getUltraAverage();
+        printf("%f\n", UltraAverage);
+        CyDelay(500);
     }
 }   
 #endif
@@ -433,7 +597,7 @@ int main()
 //reflectance//
 int main()
 {
-    struct sensors_ ref;
+    //struct sensors_ ref;
     struct sensors_ dig;
 
     Systick_Start();
@@ -444,12 +608,17 @@ int main()
     reflectance_start();
     reflectance_set_threshold(9000, 9000, 11000, 11000, 9000, 9000); // set center sensor threshold to 11000 and others to 9000
     
+        motor_start();
+        MotorDirLeft_Write(1);
+        MotorDirRight_Write(1);
+        PWM_WriteCompare1(255);
+        PWM_WriteCompare2(255);
 
     for(;;)
     {
         // read raw sensor values
-        reflectance_read(&ref);
-        printf("%5d %5d %5d %5d %5d %5d\r\n", ref.l3, ref.l2, ref.l1, ref.r1, ref.r2, ref.r3);       // print out each period of reflectance sensors
+        //reflectance_read(&ref);
+        //printf("%5d %5d %5d %5d %5d %5d\r\n", ref.l3, ref.l2, ref.l1, ref.r1, ref.r2, ref.r3);       // print out each period of reflectance sensors
         
         // read digital values that are based on threshold. 0 = white, 1 = black
         // when blackness value is over threshold the sensors reads 1, otherwise 0
@@ -457,6 +626,7 @@ int main()
         printf("%5d %5d %5d %5d %5d %5d \r\n", dig.l3, dig.l2, dig.l1, dig.r1, dig.r2, dig.r3);        //print out 0 or 1 according to results of reflectance period
         
         CyDelay(200);
+        
     }
 }   
 #endif
