@@ -31,6 +31,7 @@
 
 #include <project.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "Systick.h"
 #include "Motor.h"
 #include "Ultra.h"
