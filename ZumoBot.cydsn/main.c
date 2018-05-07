@@ -63,7 +63,7 @@ float getUltraAverage();
 */
 
 //viivanseuranta
-#if 1
+#if 0
 
     //viivanseuranta logiikka.
     
@@ -119,8 +119,8 @@ int main()
     {
         reflectance_digital(&dig);      //print out 0 or 1 according to results of reflectance period
         CyDelay(1);
-        PWM_WriteCompare1(250);
-        PWM_WriteCompare2(250);
+        PWM_WriteCompare1(255);
+        PWM_WriteCompare2(255);
         
         if(dig.l1 == 1 && dig.r1 == 1)
         {
@@ -146,8 +146,8 @@ int main()
             motor_start();
             MotorDirLeft_Write(0);      //left motor frwd (1 = backwards)
             MotorDirRight_Write(0);     //right motor frwd (1 = backwards)
-            PWM_WriteCompare1(250);
-            PWM_WriteCompare2(250);
+            PWM_WriteCompare1(255);
+            PWM_WriteCompare2(255);
         }
         else if((dig.r1 == 1 && dig.l1 == 0) || (dig.r1 == 1 && dig.r2 == 1))
         {
@@ -226,7 +226,7 @@ int main()
 #endif
 
 //sumopaini
-#if 0
+#if 1
     
     //sumo paini koodi.
     
