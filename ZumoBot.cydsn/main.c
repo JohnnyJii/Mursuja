@@ -69,12 +69,12 @@ int main()
     CyGlobalIntEnable; 
     UART_1_Start();
     Systick_Start();
-    IR_Start();
+    IR_Start(); // starts ir
     IR_flush();
     
-    ADC_Battery_Start();        
+    ADC_Battery_Start();    // starts battery    
 
-    bool ir = true;
+    bool ir = true; 
     int stop = 0;
     int direction = 0;  // 1 for left, 2 for right.
     int16 adcresult =0;
@@ -91,7 +91,7 @@ int main()
     // SW1_Read() returns zero when button is pressed
     // SW1_Read() returns one when button is not pressed
     
-    reflectance_start();
+    reflectance_start(); // starts to read sensors
     reflectance_set_threshold(9000, 9000, 11000, 11000, 9000, 9000); // set center sensor threshold to 11000 and others to 9000
     printf("\n testi \n");
     while(ir == true)
