@@ -63,7 +63,7 @@ float getUltraAverage();
 */
 
 //viivanseuranta
-#if 0
+#if 1
 
     //viivanseuranta logiikka.
     
@@ -89,12 +89,9 @@ int main()
 
     printf("\nBoot\n\n");
     
-<<<<<<< HEAD
     reflectance_start(); // starts to read sensors
-=======
     //sensorien lukemisne aloitus, sekä valkosen/mustan rajoarvojen asettaminen.
     reflectance_start();
->>>>>>> d00f1dadfa41075b12690cd1118dc6ac2a186161
     reflectance_set_threshold(9000, 9000, 11000, 11000, 9000, 9000); // set center sensor threshold to 11000 and others to 9000
     
     motor_start();
@@ -226,7 +223,7 @@ int main()
 #endif
 
 //sumopaini
-#if 1
+#if 0
     
     //sumo paini koodi.
     
